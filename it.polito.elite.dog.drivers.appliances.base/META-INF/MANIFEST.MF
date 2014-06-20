@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: AppliancesBaseLibrary
+Bundle-SymbolicName: it.polito.elite.dog.drivers.appliances.base
+Bundle-Version: 1.0.0
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Import-Package: it.polito.elite.dog.core.library.model;version="1.1.0",
+ it.polito.elite.dog.core.library.model.devicecategory;version="1.1.0",
+ it.polito.elite.dog.core.library.util;version="1.1.0",
+ org.osgi.framework;version="1.7.0",
+ org.osgi.service.cm,
+ org.osgi.service.device;version="1.1.0"
+Export-Package: it.polito.elite.dog.drivers.appliances.base
