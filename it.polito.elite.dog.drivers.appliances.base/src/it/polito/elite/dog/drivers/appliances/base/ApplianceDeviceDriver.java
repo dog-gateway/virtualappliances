@@ -22,25 +22,33 @@ import it.polito.elite.dog.core.library.model.ControllableDevice;
 import it.polito.elite.dog.core.library.model.DeviceCostants;
 import it.polito.elite.dog.core.library.model.devicecategory.Controllable;
 import it.polito.elite.dog.core.library.util.LogHelper;
+import it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator;
 
-import java.util.Dictionary;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.cm.ConfigurationException;
-import org.osgi.service.cm.ManagedService;
 import org.osgi.service.device.Device;
 import org.osgi.service.device.Driver;
 
 /**
+ * Abstract class to use as "template" for writing Appliance Device Drivers,
+ * manages all common operations such as:
+ * <ul>
+ * <li>Driver registration</li>
+ * <li>Device match and attach</li>
+ * <li>StateMachineLocator binding</li>
+ * <li>etc.</li>
+ * </ul>
+ * 
  * @author bonino
  * 
  */
-public abstract class ApplianceDeviceDriver implements Driver, ManagedService
+public abstract class ApplianceDeviceDriver implements Driver
 {
 	// The OSGi framework context
 	protected BundleContext context;
@@ -50,6 +58,9 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 
 	// the list of instances controlled / spawned by this driver
 	protected Hashtable<String, ApplianceDriverInstance> managedInstances;
+
+	// the reference to the state machine locator to be used by the driver
+	private AtomicReference<ApplianceStateMachineLocator> stateMachineLocator;
 
 	// the registration object needed to handle the life span of this bundle in
 	// the OSGi framework (it is a ServiceRegistration object for use by the
@@ -64,18 +75,27 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 	// categories
 	protected Class<?> driverInstanceClass;
 
+	/**
+	 * Class constructor, initializes inner data structures.
+	 */
 	public ApplianceDeviceDriver()
 	{
 		// initialize the list of managed device instances (indexed by device
 		// id)
 		this.managedInstances = new Hashtable<String, ApplianceDriverInstance>();
 
-		// intialize the device categories matched by this driver
+		// initialize the device categories matched by this driver
 		this.deviceCategories = new HashSet<String>();
+
+		// initialize the atomic reference hosting the binding with the state
+		// machine locator
+		this.stateMachineLocator = new AtomicReference<>();
 	}
 
 	/**
-	 * Handle the bundle activation
+	 * Handle the bundle activation, preparing the driver for the service
+	 * registration that will actually occur when all dependencies will be
+	 * satisfied.
 	 */
 	public void activate(BundleContext bundleContext)
 	{
@@ -90,10 +110,47 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 
 	}
 
+	/**
+	 * Handle the bundle de-activation by unregistering provided services
+	 */
 	public void deactivate()
 	{
 		// remove the service from the OSGi framework
 		this.unRegisterDeviceDriver();
+	}
+
+	/**
+	 * Binds an instance of {@link ApplianceStateMachineLocator}
+	 * 
+	 * @param locator
+	 *            The instance to bind to.
+	 */
+	public void addedApplianceStateMachineLocator(
+			ApplianceStateMachineLocator locator)
+	{
+		// store a reference to the state machine locator needed for handling
+		// appliance state emulation / detection
+		this.stateMachineLocator.set(locator);
+
+		// register driver
+		registerDeviceDriver();
+	}
+
+	/**
+	 * Removes the binding to the given instance of
+	 * {@link ApplianceStateMachineLocator}
+	 * 
+	 * @param locator
+	 *            The instance to unbind from.
+	 */
+	public void removedApplianceStateMachineLocator(
+			ApplianceStateMachineLocator locator)
+	{
+		// remove the reference to the given state machine locator
+		if (this.stateMachineLocator.compareAndSet(locator, null))
+
+			// unregister the driver
+			this.unRegisterDeviceDriver();
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -142,7 +199,8 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 
 			// create a new driver instance
 			ApplianceDriverInstance driverInstance = this
-					.createApplianceDriverInstance(device, context);
+					.createApplianceDriverInstance(device,
+							this.stateMachineLocator.get(), this.context);
 
 			// connect this driver instance with the device
 			device.setDriver(driverInstance);
@@ -157,8 +215,25 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 		return null;
 	}
 
+	/**
+	 * Abstract method for building a device driver instance, must be
+	 * implemented by all extending classes.
+	 * 
+	 * @param device
+	 *            The {@link ControllableDevice} to which the driver instance
+	 *            should attach.
+	 * @param stateMachineLocator
+	 *            The {@link ApplianceStateMachineLocator} to use for gathering
+	 *            the right emulator machine.
+	 * @param context
+	 *            The {@link BundleContext} to use for logging and other
+	 *            osgi-related tasks.
+	 * @return
+	 */
 	public abstract ApplianceDriverInstance createApplianceDriverInstance(
-			ControllableDevice device, BundleContext context);
+			ControllableDevice device,
+			ApplianceStateMachineLocator stateMachineLocator,
+			BundleContext context);
 
 	/**
 	 * Registers this driver in the OSGi framework, making its services
@@ -180,7 +255,7 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 	}
 
 	/**
-	 * Handle the bundle de-activation
+	 * Handle the bundle service un-registration
 	 */
 	protected void unRegisterDeviceDriver()
 	{
@@ -207,19 +282,6 @@ public abstract class ApplianceDeviceDriver implements Driver, ManagedService
 			}
 		}
 
-	}
-
-	@Override
-	public void updated(Dictionary<String, ?> properties)
-			throws ConfigurationException
-	{
-		if (properties != null)
-		{
-			// handle any property here
-
-			// register driver
-			registerDeviceDriver();
-		}
 	}
 
 }

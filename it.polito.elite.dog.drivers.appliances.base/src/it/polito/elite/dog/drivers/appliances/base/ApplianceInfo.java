@@ -12,4 +12,5 @@ import it.polito.elite.dog.core.library.model.ConfigurationConstants;
 public class ApplianceInfo extends ConfigurationConstants
 {
 	public static final String MANUFACTURER = "ELITE";
+	public static final String SERIAL = "serialNumber";
 }
