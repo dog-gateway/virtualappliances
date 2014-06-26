@@ -18,15 +18,14 @@
  */
 package it.polito.elite.dog.drivers.appliances.pelletstove;
 
-import java.util.Dictionary;
-
-import org.osgi.framework.BundleContext;
-import org.osgi.service.cm.ConfigurationException;
-
 import it.polito.elite.dog.core.library.model.ControllableDevice;
 import it.polito.elite.dog.core.library.model.devicecategory.PelletHeater;
+import it.polito.elite.dog.core.library.util.LogHelper;
 import it.polito.elite.dog.drivers.appliances.base.ApplianceDeviceDriver;
 import it.polito.elite.dog.drivers.appliances.base.ApplianceDriverInstance;
+import it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator;
+
+import org.osgi.framework.BundleContext;
 
 /**
  * @author bonino
@@ -46,18 +45,13 @@ public class PelletStoveDriver extends ApplianceDeviceDriver
 
 	@Override
 	public ApplianceDriverInstance createApplianceDriverInstance(
-			ControllableDevice device, BundleContext context)
+			ControllableDevice device,
+			ApplianceStateMachineLocator stateMachineLocator, LogHelper logger,
+			BundleContext context)
 	{
-		return new PelletStoveDriverInstance(device, context);
+		return new PelletStoveDriverInstance(device, stateMachineLocator, logger, context);
 	}
 
-	@Override
-	public void updated(Dictionary<String, ?> properties)
-			throws ConfigurationException
-	{
-		// call the normal updated method
-		super.updated(properties);
 
-	}
 
 }

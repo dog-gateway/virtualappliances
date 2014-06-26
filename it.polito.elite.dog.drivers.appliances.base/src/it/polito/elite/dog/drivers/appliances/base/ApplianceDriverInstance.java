@@ -22,7 +22,10 @@ import it.polito.elite.dog.core.library.model.CNParameters;
 import it.polito.elite.dog.core.library.model.ConfigurationConstants;
 import it.polito.elite.dog.core.library.model.ControllableDevice;
 import it.polito.elite.dog.core.library.model.DeviceStatus;
+import it.polito.elite.dog.core.library.model.notification.Notification;
+import it.polito.elite.dog.core.library.model.notification.SinglePhaseActivePowerMeasurementNotification;
 import it.polito.elite.dog.core.library.util.ElementDescription;
+import it.polito.elite.dog.core.library.util.LogHelper;
 import it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator;
 
 import java.io.IOException;
@@ -31,11 +34,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import javax.measure.Measure;
 import javax.xml.stream.XMLStreamException;
 
-import org.apache.commons.digester.Digester;
 import org.apache.commons.scxml2.SCXMLExecutor;
 import org.apache.commons.scxml2.SCXMLListener;
+import org.apache.commons.scxml2.TriggerEvent;
 import org.apache.commons.scxml2.env.SimpleDispatcher;
 import org.apache.commons.scxml2.env.SimpleErrorReporter;
 import org.apache.commons.scxml2.env.jexl.JexlContext;
@@ -44,6 +48,9 @@ import org.apache.commons.scxml2.io.SCXMLReader;
 import org.apache.commons.scxml2.model.EnterableState;
 import org.apache.commons.scxml2.model.ModelException;
 import org.apache.commons.scxml2.model.SCXML;
+import org.apache.commons.scxml2.model.Transition;
+import org.apache.commons.scxml2.model.TransitionTarget;
+import org.osgi.service.log.LogService;
 
 /**
  * @author bonino
@@ -61,10 +68,10 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 
 	// the serial number assoiated to this device
 	protected String deviceSerial;
-	
+
 	// the state machine associated to this driver instance
 	protected SCXML stateMachine;
-	
+
 	// the state machine executor associated to this driver instance
 	protected SCXMLExecutor executor;
 
@@ -77,14 +84,23 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 	// the set of commands associated to the driver
 	protected HashMap<String, CNParameters> commands;
 
+	// the logger
+	protected LogHelper logger;
+
 	/**
 	 * @param device
 	 */
 	public ApplianceDriverInstance(ControllableDevice device,
-			ApplianceStateMachineLocator stateMachineLocator)
+			ApplianceStateMachineLocator stateMachineLocator, LogHelper logger)
 	{
 		// store a reference to the associate device
 		this.device = device;
+		
+		// initialize the current state
+		this.currentState = new DeviceStatus(this.device.getDeviceId());
+
+		// store a reference to the logger
+		this.logger = logger;
 
 		// initialize data structures
 		this.notifications = new HashMap<String, CNParameters>();
@@ -94,11 +110,11 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 		// configuration parameters
 		this.fillConfiguration();
 
-		// call the specific configuration method, if needed
-		this.specificConfiguration();
-
 		// handle the state machine associated to the given controllable device
 		this.initializeDeviceStateMachine();
+
+		// call the specific configuration method, if needed
+		this.specificConfiguration();
 	}
 
 	/**
@@ -137,26 +153,28 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 					this.stateMachine = SCXMLReader.read(stateMachineURL);
 
 					// build a new executor
-					this.executor = new SCXMLExecutor(
-							new JexlEvaluator(), new SimpleDispatcher(),
-							new SimpleErrorReporter());
-					
-					//set the state machine
+					this.executor = new SCXMLExecutor(new JexlEvaluator(),
+							new SimpleDispatcher(), new SimpleErrorReporter());
+
+					// set the state machine
 					this.executor.setStateMachine(this.stateMachine);
-					
-					//set the root context
+
+					// set the root context
 					this.executor.setRootContext(new JexlContext());
-					
-					//add this class as listener of the state machine changes
-					this.executor.addListener(this.stateMachine,this);
-					
-					//start the engine
+
+					// add this class as listener of the state machine changes
+					this.executor.addListener(this.stateMachine, this);
+
+					// start the engine
 					this.executor.go();
 				}
 				catch (IOException | ModelException | XMLStreamException e)
 				{
-					// TODO handle using logging
-					e.printStackTrace();
+					// log the error and continue if possible
+					this.logger
+							.log(LogService.LOG_ERROR,
+									"Error while creating the state machine executor associated to this driver instance",
+									e);
 				}
 
 			}
@@ -245,9 +263,64 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 	@Override
 	public void onEntry(final EnterableState enteredIn)
 	{
-		//dispatch the message
+		// dispatch the message
 		this.newMessageFromHouse(enteredIn.getId());
 	}
-
 	
+	@Override
+	public void onExit(EnterableState arg0)
+	{
+		//intentionally left empty
+		
+	}
+
+	@Override
+	public void onTransition(TransitionTarget arg0, TransitionTarget arg1,
+			Transition arg2, String arg3)
+	{
+		// intentionally left empty
+		
+	}
+
+	/**
+	 * Handles notifications coming from the meter associated to the device
+	 * handled by this driver. Currently on
+	 * {@link SinglePhaseActivePowerMeasurementNotification} are supported.
+	 * 
+	 * @param currentNotification
+	 *            The {@link Notification} to handle.
+	 */
+	public void handleNotification(Notification currentNotification)
+	{
+		// default behavior, only handle single phase active power
+		// notifications, can be overridden
+		if (currentNotification instanceof SinglePhaseActivePowerMeasurementNotification)
+		{
+			// get the notification name
+			String name = SinglePhaseActivePowerMeasurementNotification.notificationName;
+			Measure<?, ?> value = ((SinglePhaseActivePowerMeasurementNotification) currentNotification)
+					.getPowerValue();
+
+			// build an event representing the new measure...
+			// TODO check if it could be generalized to all notifications
+			TriggerEvent event = new TriggerEvent(name,
+					TriggerEvent.SIGNAL_EVENT, value);
+
+			// trigger the event in the state machine
+			try
+			{
+				this.executor.triggerEvent(event);
+			}
+			catch (ModelException e)
+			{
+				// log the error, and continue
+				this.logger.log(LogService.LOG_WARNING,
+						"Error while triggering a new event on the device state machine for device: "
+								+ device.getDeviceId(), e);
+			}
+
+		}
+
+	}
+
 }

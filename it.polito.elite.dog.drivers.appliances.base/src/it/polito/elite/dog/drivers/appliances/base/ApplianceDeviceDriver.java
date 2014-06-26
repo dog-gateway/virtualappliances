@@ -21,6 +21,7 @@ package it.polito.elite.dog.drivers.appliances.base;
 import it.polito.elite.dog.core.library.model.ControllableDevice;
 import it.polito.elite.dog.core.library.model.DeviceCostants;
 import it.polito.elite.dog.core.library.model.devicecategory.Controllable;
+import it.polito.elite.dog.core.library.model.notification.Notification;
 import it.polito.elite.dog.core.library.util.LogHelper;
 import it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator;
 
@@ -34,6 +35,9 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.device.Device;
 import org.osgi.service.device.Driver;
+import org.osgi.service.event.Event;
+import org.osgi.service.event.EventConstants;
+import org.osgi.service.event.EventHandler;
 
 /**
  * Abstract class to use as "template" for writing Appliance Device Drivers,
@@ -48,7 +52,7 @@ import org.osgi.service.device.Driver;
  * @author bonino
  * 
  */
-public abstract class ApplianceDeviceDriver implements Driver
+public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 {
 	// The OSGi framework context
 	protected BundleContext context;
@@ -58,6 +62,9 @@ public abstract class ApplianceDeviceDriver implements Driver
 
 	// the list of instances controlled / spawned by this driver
 	protected Hashtable<String, ApplianceDriverInstance> managedInstances;
+
+	// the map of meter - device associations
+	protected Hashtable<String, String> meterToDevice;
 
 	// the reference to the state machine locator to be used by the driver
 	private AtomicReference<ApplianceStateMachineLocator> stateMachineLocator;
@@ -82,10 +89,13 @@ public abstract class ApplianceDeviceDriver implements Driver
 	{
 		// initialize the list of managed device instances (indexed by device
 		// id)
-		this.managedInstances = new Hashtable<String, ApplianceDriverInstance>();
+		this.managedInstances = new Hashtable<>();
+
+		// initialize the meter to device table
+		this.meterToDevice = new Hashtable<>();
 
 		// initialize the device categories matched by this driver
-		this.deviceCategories = new HashSet<String>();
+		this.deviceCategories = new HashSet<>();
 
 		// initialize the atomic reference hosting the binding with the state
 		// machine locator
@@ -200,7 +210,7 @@ public abstract class ApplianceDeviceDriver implements Driver
 			// create a new driver instance
 			ApplianceDriverInstance driverInstance = this
 					.createApplianceDriverInstance(device,
-							this.stateMachineLocator.get(), this.context);
+							this.stateMachineLocator.get(), this.logger, this.context);
 
 			// connect this driver instance with the device
 			device.setDriver(driverInstance);
@@ -209,6 +219,19 @@ public abstract class ApplianceDeviceDriver implements Driver
 			synchronized (this.managedInstances)
 			{
 				this.managedInstances.put(device.getDeviceId(), driverInstance);
+			}
+
+			//get the device meter, if any available
+			String meter = device.getDeviceDescriptor().getHasMeter();
+
+			//if a meter is associated to the device
+			if ((meter != null) && (!meter.isEmpty()))
+			{
+				// fill the meter to device map
+				synchronized (this.meterToDevice)
+				{
+					this.meterToDevice.put(meter, device.getDeviceId());
+				}
 			}
 		}
 
@@ -232,7 +255,7 @@ public abstract class ApplianceDeviceDriver implements Driver
 	 */
 	public abstract ApplianceDriverInstance createApplianceDriverInstance(
 			ControllableDevice device,
-			ApplianceStateMachineLocator stateMachineLocator,
+			ApplianceStateMachineLocator stateMachineLocator, LogHelper logger,
 			BundleContext context);
 
 	/**
@@ -280,6 +303,41 @@ public abstract class ApplianceDeviceDriver implements Driver
 			{
 				this.deviceCategories.add(devCat.getName());
 			}
+		}
+
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.osgi.service.event.EventHandler#handleEvent(org.osgi.service.event
+	 * .Event)
+	 */
+	@Override
+	public void handleEvent(Event event)
+	{
+		// handles incoming events
+		Object eventContent = event.getProperty(EventConstants.EVENT);
+
+		// check if the incoming event is a notification
+		if (eventContent instanceof Notification)
+		{
+			// get the notification object
+			Notification currentNotification = (Notification) eventContent;
+
+			// get the meter URI
+			String meterURI = currentNotification.getDeviceUri();
+			
+			// get the associated device
+			String deviceURI = this.meterToDevice.get(meterURI);
+
+			// get the associated device driver instance
+			ApplianceDriverInstance instanceToNotify = this.managedInstances
+					.get(deviceURI);
+
+			// notify the right instance
+			instanceToNotify.handleNotification(currentNotification);
 		}
 
 	}

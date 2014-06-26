@@ -18,113 +18,204 @@
  */
 package it.polito.elite.dog.drivers.appliances.pelletstove;
 
-import javax.measure.Measure;
-
-import org.osgi.framework.BundleContext;
-
 import it.polito.elite.dog.core.library.model.ControllableDevice;
 import it.polito.elite.dog.core.library.model.DeviceStatus;
 import it.polito.elite.dog.core.library.model.devicecategory.PelletHeater;
+import it.polito.elite.dog.core.library.model.state.HeaterState;
+import it.polito.elite.dog.core.library.model.state.StandByOnOffState;
+import it.polito.elite.dog.core.library.model.statevalue.CoolingStateValue;
+import it.polito.elite.dog.core.library.model.statevalue.FireUpStateValue;
+import it.polito.elite.dog.core.library.model.statevalue.HeatingStateValue;
+import it.polito.elite.dog.core.library.model.statevalue.OffStateValue;
+import it.polito.elite.dog.core.library.model.statevalue.OnStateValue;
+import it.polito.elite.dog.core.library.model.statevalue.StandByStateValue;
+import it.polito.elite.dog.core.library.util.LogHelper;
 import it.polito.elite.dog.drivers.appliances.base.ApplianceDriverInstance;
+import it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator;
+
+import org.osgi.framework.BundleContext;
 
 /**
  * @author bonino
- *
+ * 
  */
-public class PelletStoveDriverInstance extends ApplianceDriverInstance implements PelletHeater
+public class PelletStoveDriverInstance extends ApplianceDriverInstance
+		implements PelletHeater
 {
 
 	/**
 	 * @param device
+	 * @param logger
+	 * @param stateMachineLocator
 	 */
-	public PelletStoveDriverInstance(ControllableDevice device, BundleContext context)
+	public PelletStoveDriverInstance(ControllableDevice device,
+			ApplianceStateMachineLocator stateMachineLocator, LogHelper logger,
+			BundleContext context)
 	{
-		super(device);
-		// TODO Auto-generated constructor stub
-	}
+		// call the superclass constructor
+		super(device, stateMachineLocator, logger);
 
-	@Override
-	protected void specificConfiguration()
-	{
-		// TODO Auto-generated method stub
-		
+		// initialize states
+		this.initializeStates();
 	}
 
 	@Override
 	public DeviceStatus getState()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		//return the current device state
+		return this.currentState;
 	}
 
 	@Override
 	public void on()
 	{
-		// TODO Auto-generated method stub
-		
+		// do nothing....
+
 	}
 
 	@Override
 	public void standBy()
 	{
-		// TODO Auto-generated method stub
-		
+		// do nothing....
+
 	}
 
 	@Override
 	public void off()
 	{
-		// TODO Auto-generated method stub
-		
+		// do nothing....
+
 	}
 
 	@Override
 	public void notifyFiringUp()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).notifyFiringUp();
 	}
 
 	@Override
 	public void notifyCool()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).notifyCool();
 	}
 
 	@Override
 	public void notifyHeat()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).notifyHeat();
+
 	}
 
 	@Override
 	public void notifyOn()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).notifyOn();
 	}
 
 	@Override
 	public void notifyOff()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).notifyOff();
 	}
 
 	@Override
 	public void notifyStandby()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).notifyStandby();
 	}
 
 	@Override
 	public void updateStatus()
 	{
-		// TODO Auto-generated method stub
-		
+		((PelletHeater)this.device).updateStatus();
+	}
+
+	@Override
+	protected void newMessageFromHouse(String newStateName)
+	{
+		// handle the new state
+		switch (newStateName)
+		{
+		case "on":
+		{
+			// change the current state
+			this.currentState.setState(StandByOnOffState.class.getSimpleName(),
+					new StandByOnOffState(new OnStateValue()));
+
+			// notify the state change
+			this.notifyOn();
+			break;
+		}
+		case "off":
+		{
+			// change the current state
+			this.currentState.setState(StandByOnOffState.class.getSimpleName(),
+					new StandByOnOffState(new OffStateValue()));
+
+			// notify the state change
+			this.notifyOff();
+			break;
+		}
+		case "heat":
+		{
+			// change the current state
+			this.currentState.setState(HeaterState.class.getSimpleName(),
+					new HeaterState(new HeatingStateValue()));
+
+			// notify the state change
+			this.notifyHeat();
+			break;
+		}
+		case "cool":
+		{
+			// change the current state
+			this.currentState.setState(HeaterState.class.getSimpleName(),
+					new HeaterState(new CoolingStateValue()));
+
+			// notify the state change
+			this.notifyCool();
+			break;
+		}
+		case "firingUp":
+		{
+			// change the current state
+			this.currentState.setState(HeaterState.class.getSimpleName(),
+					new HeaterState(new FireUpStateValue()));
+
+			// notify the state change
+			this.notifyFiringUp();
+			break;
+		}
+		case "standby":
+		{
+
+			// change the current state
+			this.currentState.setState(StandByOnOffState.class.getSimpleName(),
+					new StandByOnOffState(new StandByStateValue()));
+
+			// notify the state change
+			this.notifyStandby();
+			break;
+		}
+		}
+	}
+
+	@Override
+	protected void specificConfiguration()
+	{
+		// intentionally left empty
+	}
+
+	/**
+	 * Initializes the state of this pellet stove instance, initially set to
+	 * off.
+	 */
+	private void initializeStates()
+	{
+		// initialize the state at off
+		this.currentState.setState(StandByOnOffState.class.getSimpleName(),
+				new StandByOnOffState(new OffStateValue()));
+
 	}
 
 }
