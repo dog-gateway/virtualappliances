@@ -41,6 +41,7 @@ public class PelletStoveDriver extends ApplianceDeviceDriver
 	{
 		// fill supported device categories
 		this.deviceCategories.add(PelletHeater.class.getName());
+		this.driverInstanceClass = PelletStoveDriverInstance.class;
 	}
 
 	@Override

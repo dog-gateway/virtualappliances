@@ -34,6 +34,7 @@ import it.polito.elite.dog.drivers.appliances.base.ApplianceDriverInstance;
 import it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.service.log.LogService;
 
 /**
  * @author bonino
@@ -62,7 +63,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 	@Override
 	public DeviceStatus getState()
 	{
-		//return the current device state
+		// return the current device state
 		return this.currentState;
 	}
 
@@ -90,49 +91,50 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 	@Override
 	public void notifyFiringUp()
 	{
-		((PelletHeater)this.device).notifyFiringUp();
+		((PelletHeater) this.device).notifyFiringUp();
 	}
 
 	@Override
 	public void notifyCool()
 	{
-		((PelletHeater)this.device).notifyCool();
+		((PelletHeater) this.device).notifyCool();
 	}
 
 	@Override
 	public void notifyHeat()
 	{
-		((PelletHeater)this.device).notifyHeat();
+		((PelletHeater) this.device).notifyHeat();
 
 	}
 
 	@Override
 	public void notifyOn()
 	{
-		((PelletHeater)this.device).notifyOn();
+		((PelletHeater) this.device).notifyOn();
 	}
 
 	@Override
 	public void notifyOff()
 	{
-		((PelletHeater)this.device).notifyOff();
+		((PelletHeater) this.device).notifyOff();
 	}
 
 	@Override
 	public void notifyStandby()
 	{
-		((PelletHeater)this.device).notifyStandby();
+		((PelletHeater) this.device).notifyStandby();
 	}
 
 	@Override
 	public void updateStatus()
 	{
-		((PelletHeater)this.device).updateStatus();
+		((PelletHeater) this.device).updateStatus();
 	}
 
 	@Override
 	protected void newMessageFromHouse(String newStateName)
 	{
+		this.logger.log(LogService.LOG_INFO, "Entered:"+newStateName);
 		// handle the new state
 		switch (newStateName)
 		{
@@ -156,21 +158,23 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 			this.notifyOff();
 			break;
 		}
-		case "heat":
+		case "heating":
 		{
 			// change the current state
 			this.currentState.setState(HeaterState.class.getSimpleName(),
 					new HeaterState(new HeatingStateValue()));
+			
 
 			// notify the state change
 			this.notifyHeat();
 			break;
 		}
-		case "cool":
+		case "cooling":
 		{
 			// change the current state
 			this.currentState.setState(HeaterState.class.getSimpleName(),
 					new HeaterState(new CoolingStateValue()));
+			
 
 			// notify the state change
 			this.notifyCool();
@@ -181,6 +185,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 			// change the current state
 			this.currentState.setState(HeaterState.class.getSimpleName(),
 					new HeaterState(new FireUpStateValue()));
+
 
 			// notify the state change
 			this.notifyFiringUp();

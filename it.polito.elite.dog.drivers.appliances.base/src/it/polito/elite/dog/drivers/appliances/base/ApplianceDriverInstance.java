@@ -34,7 +34,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.measure.Measure;
+import javax.measure.DecimalMeasure;
+import javax.measure.quantity.Power;
+import javax.measure.unit.SI;
 import javax.xml.stream.XMLStreamException;
 
 import org.apache.commons.scxml2.SCXMLExecutor;
@@ -42,6 +44,7 @@ import org.apache.commons.scxml2.SCXMLListener;
 import org.apache.commons.scxml2.TriggerEvent;
 import org.apache.commons.scxml2.env.SimpleDispatcher;
 import org.apache.commons.scxml2.env.SimpleErrorReporter;
+import org.apache.commons.scxml2.env.SimpleScheduler;
 import org.apache.commons.scxml2.env.jexl.JexlContext;
 import org.apache.commons.scxml2.env.jexl.JexlEvaluator;
 import org.apache.commons.scxml2.io.SCXMLReader;
@@ -96,6 +99,9 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 		// store a reference to the associate device
 		this.device = device;
 		
+		// store a reference to the state machine locator
+		this.stateMachineLocator = stateMachineLocator;
+
 		// initialize the current state
 		this.currentState = new DeviceStatus(this.device.getDeviceId());
 
@@ -155,12 +161,18 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 					// build a new executor
 					this.executor = new SCXMLExecutor(new JexlEvaluator(),
 							new SimpleDispatcher(), new SimpleErrorReporter());
+					
+					//set a scheduler dispatcher to handle delayed events
+					this.executor.setEventdispatcher(new SimpleScheduler(this.executor));
 
 					// set the state machine
 					this.executor.setStateMachine(this.stateMachine);
 
 					// set the root context
-					this.executor.setRootContext(new JexlContext());
+					JexlContext context = new JexlContext();
+
+					// set the executor context
+					this.executor.setRootContext(context);
 
 					// add this class as listener of the state machine changes
 					this.executor.addListener(this.stateMachine, this);
@@ -266,12 +278,12 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 		// dispatch the message
 		this.newMessageFromHouse(enteredIn.getId());
 	}
-	
+
 	@Override
 	public void onExit(EnterableState arg0)
 	{
-		//intentionally left empty
-		
+		// intentionally left empty
+
 	}
 
 	@Override
@@ -279,7 +291,7 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 			Transition arg2, String arg3)
 	{
 		// intentionally left empty
-		
+
 	}
 
 	/**
@@ -292,35 +304,43 @@ public abstract class ApplianceDriverInstance implements SCXMLListener
 	 */
 	public void handleNotification(Notification currentNotification)
 	{
-		// default behavior, only handle single phase active power
-		// notifications, can be overridden
-		if (currentNotification instanceof SinglePhaseActivePowerMeasurementNotification)
+		//check if an executor is available
+		if (this.executor != null)
 		{
-			// get the notification name
-			String name = SinglePhaseActivePowerMeasurementNotification.notificationName;
-			Measure<?, ?> value = ((SinglePhaseActivePowerMeasurementNotification) currentNotification)
-					.getPowerValue();
-
-			// build an event representing the new measure...
-			// TODO check if it could be generalized to all notifications
-			TriggerEvent event = new TriggerEvent(name,
-					TriggerEvent.SIGNAL_EVENT, value);
-
-			// trigger the event in the state machine
-			try
+			// default behavior, only handle single phase active power
+			// notifications, can be overridden
+			if (currentNotification instanceof SinglePhaseActivePowerMeasurementNotification)
 			{
-				this.executor.triggerEvent(event);
-			}
-			catch (ModelException e)
-			{
-				// log the error, and continue
-				this.logger.log(LogService.LOG_WARNING,
-						"Error while triggering a new event on the device state machine for device: "
-								+ device.getDeviceId(), e);
-			}
+				// get the notification name
+				String name = SinglePhaseActivePowerMeasurementNotification.notificationName;
 
+				// converts to a power measure
+				@SuppressWarnings("unchecked")
+				DecimalMeasure<Power> value = (DecimalMeasure<Power>) ((SinglePhaseActivePowerMeasurementNotification) currentNotification)
+						.getPowerValue();
+
+				// build an event representing the new measure in Watt...
+				// TODO check if it could be generalized to all notifications?
+				// maybe using evaluators?
+				TriggerEvent event = new TriggerEvent(name,
+						TriggerEvent.SIGNAL_EVENT, new Double(value.to(SI.WATT).getValue()
+								.doubleValue()));
+
+				// trigger the event in the state machine
+				try
+				{
+					this.executor.triggerEvent(event);
+				}
+				catch (ModelException e)
+				{
+					// log the error, and continue
+					this.logger.log(LogService.LOG_WARNING,
+							"Error while triggering a new event on the device state machine for device: "
+									+ device.getDeviceId(), e);
+				}
+
+			}
 		}
 
 	}
-
 }

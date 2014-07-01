@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" name="it.polito.elite.dog.drivers.appliances.base">
    <implementation class="it.polito.elite.dog.drivers.appliances.base.service.ApplianceStateMachineLocatorImpl"/>
-   <property name="service.pid" type="String" value="it.polito.elite.dog.drivers.appliances.base"/>
+   <property name="service.pid" type="String" value="it.polito.elite.dog.drivers.appliances.statemachines.locator"/>
    <service>
       <provide interface="org.osgi.service.cm.ManagedService"/>
    </service>

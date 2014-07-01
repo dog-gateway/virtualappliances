@@ -30,6 +30,7 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.omg.CosNaming.IstringHelper;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
@@ -118,6 +119,9 @@ public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 		// fill the device categories
 		this.properFillDeviceCategories(this.driverInstanceClass);
 
+		// register driver
+		registerDeviceDriver();
+
 	}
 
 	/**
@@ -141,9 +145,6 @@ public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 		// store a reference to the state machine locator needed for handling
 		// appliance state emulation / detection
 		this.stateMachineLocator.set(locator);
-
-		// register driver
-		registerDeviceDriver();
 	}
 
 	/**
@@ -210,7 +211,8 @@ public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 			// create a new driver instance
 			ApplianceDriverInstance driverInstance = this
 					.createApplianceDriverInstance(device,
-							this.stateMachineLocator.get(), this.logger, this.context);
+							this.stateMachineLocator.get(), this.logger,
+							this.context);
 
 			// connect this driver instance with the device
 			device.setDriver(driverInstance);
@@ -221,10 +223,10 @@ public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 				this.managedInstances.put(device.getDeviceId(), driverInstance);
 			}
 
-			//get the device meter, if any available
+			// get the device meter, if any available
 			String meter = device.getDeviceDescriptor().getHasMeter();
 
-			//if a meter is associated to the device
+			// if a meter is associated to the device
 			if ((meter != null) && (!meter.isEmpty()))
 			{
 				// fill the meter to device map
@@ -328,16 +330,27 @@ public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 
 			// get the meter URI
 			String meterURI = currentNotification.getDeviceUri();
-			
-			// get the associated device
-			String deviceURI = this.meterToDevice.get(meterURI);
 
-			// get the associated device driver instance
-			ApplianceDriverInstance instanceToNotify = this.managedInstances
-					.get(deviceURI);
+			//check not null
+			if (meterURI != null)
+			{
+				// get the associated device
+				String deviceURI = this.meterToDevice.get(meterURI);
 
-			// notify the right instance
-			instanceToNotify.handleNotification(currentNotification);
+				//check not null
+				if (deviceURI != null)
+				{
+					// get the associated device driver instance
+					ApplianceDriverInstance instanceToNotify = this.managedInstances
+							.get(deviceURI);
+
+					//check not null
+					if (instanceToNotify != null)
+						// notify the right instance
+						instanceToNotify
+								.handleNotification(currentNotification);
+				}
+			}
 		}
 
 	}
