@@ -30,7 +30,6 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.omg.CosNaming.IstringHelper;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
