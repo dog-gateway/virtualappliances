@@ -3,11 +3,13 @@ package it.polito.elite.dog.drivers.appliances.microwave;
 import it.polito.elite.dog.core.library.model.ControllableDevice;
 import it.polito.elite.dog.core.library.model.DeviceStatus;
 import it.polito.elite.dog.core.library.model.devicecategory.MicrowaveOven;
+import it.polito.elite.dog.core.library.model.state.ConnectionState;
 import it.polito.elite.dog.core.library.model.state.FaultState;
 import it.polito.elite.dog.core.library.model.state.MicrowaveEmissionState;
 import it.polito.elite.dog.core.library.model.state.ProgramState;
 import it.polito.elite.dog.core.library.model.state.RunState;
 import it.polito.elite.dog.core.library.model.state.StandByOnOffState;
+import it.polito.elite.dog.core.library.model.statevalue.DisconnectedStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.EmittingMicrowavesStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.IdleStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.NoFailureStateValue;
@@ -365,6 +367,9 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 		
 		this.currentState.setState(ProgramState.class.getSimpleName(),
 				new ProgramState(new NotProgrammedStateValue()));
+		
+		this.currentState.setState(ConnectionState.class.getSimpleName(),
+				new ConnectionState(new DisconnectedStateValue()));
 
 	}
 
