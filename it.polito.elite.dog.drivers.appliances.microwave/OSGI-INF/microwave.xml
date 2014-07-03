@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" activate="activate" deactivate="deactivate" name="it.polito.elite.dog.drivers.appliances.microwave">
+   <implementation class="it.polito.elite.dog.drivers.appliances.microwave.MicrowaveOvenDriver"/>
+   <property name="event.topics" type="String" value="it/polito/elite/dog/core/library/model/notification/*"/>
+   <reference bind="addedApplianceStateMachineLocator" cardinality="1..1" interface="it.polito.elite.dog.drivers.appliances.base.interfaces.ApplianceStateMachineLocator" name="ApplianceStateMachineLocator" policy="static" unbind="removedApplianceStateMachineLocator"/>
+   <service>
+      <provide interface="org.osgi.service.event.EventHandler"/>
+   </service>
+</scr:component>

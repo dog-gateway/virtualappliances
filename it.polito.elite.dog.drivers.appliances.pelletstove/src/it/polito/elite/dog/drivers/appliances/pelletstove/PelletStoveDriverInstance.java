@@ -134,75 +134,76 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 	@Override
 	protected void newMessageFromHouse(String newStateName)
 	{
-		this.logger.log(LogService.LOG_INFO, "Entered:"+newStateName);
+		this.logger.log(LogService.LOG_INFO, "Entered:" + newStateName);
 		// handle the new state
 		switch (newStateName)
 		{
-		case "on":
-		{
-			// change the current state
-			this.currentState.setState(StandByOnOffState.class.getSimpleName(),
-					new StandByOnOffState(new OnStateValue()));
+			case "on":
+			{
+				// change the current state
+				this.currentState.setState(
+						StandByOnOffState.class.getSimpleName(),
+						new StandByOnOffState(new OnStateValue()));
 
-			// notify the state change
-			this.notifyOn();
-			break;
+				// notify the state change
+				this.notifyOn();
+				break;
+			}
+			case "off":
+			{
+				// change the current state
+				this.currentState.setState(
+						StandByOnOffState.class.getSimpleName(),
+						new StandByOnOffState(new OffStateValue()));
+
+				// notify the state change
+				this.notifyOff();
+				break;
+			}
+			case "heating":
+			{
+				// change the current state
+				this.currentState.setState(HeaterState.class.getSimpleName(),
+						new HeaterState(new HeatingStateValue()));
+
+				// notify the state change
+				this.notifyHeat();
+				break;
+			}
+			case "cooling":
+			{
+				// change the current state
+				this.currentState.setState(HeaterState.class.getSimpleName(),
+						new HeaterState(new CoolingStateValue()));
+
+				// notify the state change
+				this.notifyCool();
+				break;
+			}
+			case "firingUp":
+			{
+				// change the current state
+				this.currentState.setState(HeaterState.class.getSimpleName(),
+						new HeaterState(new FireUpStateValue()));
+
+				// notify the state change
+				this.notifyFiringUp();
+				break;
+			}
+			case "standby":
+			{
+
+				// change the current state
+				this.currentState.setState(
+						StandByOnOffState.class.getSimpleName(),
+						new StandByOnOffState(new StandByStateValue()));
+
+				// notify the state change
+				this.notifyStandby();
+				break;
+			}
 		}
-		case "off":
-		{
-			// change the current state
-			this.currentState.setState(StandByOnOffState.class.getSimpleName(),
-					new StandByOnOffState(new OffStateValue()));
-
-			// notify the state change
-			this.notifyOff();
-			break;
-		}
-		case "heating":
-		{
-			// change the current state
-			this.currentState.setState(HeaterState.class.getSimpleName(),
-					new HeaterState(new HeatingStateValue()));
-			
-
-			// notify the state change
-			this.notifyHeat();
-			break;
-		}
-		case "cooling":
-		{
-			// change the current state
-			this.currentState.setState(HeaterState.class.getSimpleName(),
-					new HeaterState(new CoolingStateValue()));
-			
-
-			// notify the state change
-			this.notifyCool();
-			break;
-		}
-		case "firingUp":
-		{
-			// change the current state
-			this.currentState.setState(HeaterState.class.getSimpleName(),
-					new HeaterState(new FireUpStateValue()));
-
-
-			// notify the state change
-			this.notifyFiringUp();
-			break;
-		}
-		case "standby":
-		{
-
-			// change the current state
-			this.currentState.setState(StandByOnOffState.class.getSimpleName(),
-					new StandByOnOffState(new StandByStateValue()));
-
-			// notify the state change
-			this.notifyStandby();
-			break;
-		}
-		}
+		this.updateStatus();
 	}
 
 	@Override

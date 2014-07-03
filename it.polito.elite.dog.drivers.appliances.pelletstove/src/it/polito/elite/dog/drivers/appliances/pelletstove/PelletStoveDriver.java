@@ -19,7 +19,6 @@
 package it.polito.elite.dog.drivers.appliances.pelletstove;
 
 import it.polito.elite.dog.core.library.model.ControllableDevice;
-import it.polito.elite.dog.core.library.model.devicecategory.PelletHeater;
 import it.polito.elite.dog.core.library.util.LogHelper;
 import it.polito.elite.dog.drivers.appliances.base.ApplianceDeviceDriver;
 import it.polito.elite.dog.drivers.appliances.base.ApplianceDriverInstance;
@@ -40,7 +39,6 @@ public class PelletStoveDriver extends ApplianceDeviceDriver
 	public PelletStoveDriver()
 	{
 		// fill supported device categories
-		this.deviceCategories.add(PelletHeater.class.getName());
 		this.driverInstanceClass = PelletStoveDriverInstance.class;
 	}
 
