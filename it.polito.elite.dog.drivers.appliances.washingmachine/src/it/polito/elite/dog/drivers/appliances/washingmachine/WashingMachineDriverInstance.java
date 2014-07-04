@@ -12,6 +12,7 @@ import it.polito.elite.dog.core.library.model.state.ProgramState;
 import it.polito.elite.dog.core.library.model.state.RunState;
 import it.polito.elite.dog.core.library.model.state.StandByOnOffState;
 import it.polito.elite.dog.core.library.model.state.WashingApplianceState;
+import it.polito.elite.dog.core.library.model.statevalue.ConnectedStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.DisconnectedStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.HeatingStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.IdleStateValue;
@@ -83,6 +84,7 @@ public class WashingMachineDriverInstance extends ApplianceDriverInstance
 				// notify the state change
 				this.notifyOn();
 				this.notifyStart();
+				this.updateStatus();
 				break;
 			}
 			case "off":
@@ -97,9 +99,13 @@ public class WashingMachineDriverInstance extends ApplianceDriverInstance
 				
 				this.currentState.setState(WashingApplianceState.class.getSimpleName(),
 						new WashingApplianceState(new RinseHoldStateValue()));
+				
+				this.currentState.setState(ConnectionState.class.getSimpleName(),
+						new ConnectionState(new DisconnectedStateValue()));
 
 				// notify the state change
 				this.notifyOff();
+				this.updateStatus();
 				break;
 			}
 
@@ -108,6 +114,9 @@ public class WashingMachineDriverInstance extends ApplianceDriverInstance
 				// change the current state
 				this.currentState.setState(RunState.class.getSimpleName(),
 						new RunState(new IdleStateValue()));
+				
+				this.currentState.setState(ConnectionState.class.getSimpleName(),
+						new ConnectionState(new ConnectedStateValue()));
 
 				this.currentState.setState(
 						StandByOnOffState.class.getSimpleName(),
@@ -119,6 +128,7 @@ public class WashingMachineDriverInstance extends ApplianceDriverInstance
 				// notify the state change
 				this.notifyStop();
 				this.notifyStandby();
+				this.updateStatus();
 				break;
 			}
 
@@ -139,6 +149,7 @@ public class WashingMachineDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyStartedWashOrRinseCycle();
+				this.updateStatus();
 				break;
 			}
 			
@@ -159,6 +170,7 @@ public class WashingMachineDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyStartedHeatingCycle();
+				this.updateStatus();
 				break;
 			}
 		}

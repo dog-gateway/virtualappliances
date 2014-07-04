@@ -9,6 +9,7 @@ import it.polito.elite.dog.core.library.model.state.MicrowaveEmissionState;
 import it.polito.elite.dog.core.library.model.state.ProgramState;
 import it.polito.elite.dog.core.library.model.state.RunState;
 import it.polito.elite.dog.core.library.model.state.StandByOnOffState;
+import it.polito.elite.dog.core.library.model.statevalue.ConnectedStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.DisconnectedStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.EmittingMicrowavesStateValue;
 import it.polito.elite.dog.core.library.model.statevalue.IdleStateValue;
@@ -58,6 +59,7 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyOn();
+				this.updateStatus();
 				break;
 			}
 			case "off":
@@ -66,9 +68,13 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 				this.currentState.setState(
 						StandByOnOffState.class.getSimpleName(),
 						new StandByOnOffState(new OffStateValue()));
+				
+				this.currentState.setState(ConnectionState.class.getSimpleName(),
+						new ConnectionState(new DisconnectedStateValue()));
 
 				// notify the state change
 				this.notifyOff();
+				this.updateStatus();
 				break;
 			}
 			case "running":
@@ -81,6 +87,7 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 				// TODO: check if the dogont model is correct or should be
 				// changed..
 				this.notifyStart();
+				this.updateStatus();
 				break;
 			}
 
@@ -92,6 +99,7 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 						new EmittingMicrowavesStateValue()));
 				// notify the state change
 				this.notifyEmittingMicrowaves();
+				this.updateStatus();
 				break;
 			}
 
@@ -103,6 +111,7 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 						new NotEmittingMicrowavesStateValue()));
 				// notify the state change
 				this.notifyNotEmittingMicrowaves();
+				this.updateStatus();
 				break;
 			}
 
@@ -114,6 +123,7 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 
 				// notify
 				this.notifyStop();
+				this.updateStatus();
 				break;
 			}
 
@@ -122,6 +132,9 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 				// change the current state
 				this.currentState.setState(RunState.class.getSimpleName(),
 						new RunState(new IdleStateValue()));
+				
+				this.currentState.setState(ConnectionState.class.getSimpleName(),
+						new ConnectionState(new ConnectedStateValue()));
 
 				// change the current state
 				this.currentState.setState(
@@ -131,11 +144,10 @@ public class MicrowaveOvenDriverInstance extends ApplianceDriverInstance
 				// notify the state change
 				this.notifyStop();
 				this.notifyStandby();
+				this.updateStatus();
 				break;
 			}
 		}
-		
-		this.updateStatus();
 
 	}
 

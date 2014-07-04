@@ -147,6 +147,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyOn();
+				this.updateStatus();
 				break;
 			}
 			case "off":
@@ -158,6 +159,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyOff();
+				this.updateStatus();
 				break;
 			}
 			case "heating":
@@ -168,6 +170,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyHeat();
+				this.updateStatus();
 				break;
 			}
 			case "cooling":
@@ -178,6 +181,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyCool();
+				this.updateStatus();
 				break;
 			}
 			case "firingUp":
@@ -188,6 +192,7 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyFiringUp();
+				this.updateStatus();
 				break;
 			}
 			case "standby":
@@ -200,10 +205,10 @@ public class PelletStoveDriverInstance extends ApplianceDriverInstance
 
 				// notify the state change
 				this.notifyStandby();
+				this.updateStatus();
 				break;
 			}
 		}
-		this.updateStatus();
 	}
 
 	@Override
