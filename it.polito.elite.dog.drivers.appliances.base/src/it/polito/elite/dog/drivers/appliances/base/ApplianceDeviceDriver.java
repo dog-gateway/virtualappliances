@@ -235,6 +235,10 @@ public abstract class ApplianceDeviceDriver implements Driver, EventHandler
 				}
 			}
 		}
+		else
+		{
+			this.context.ungetService(reference);
+		}
 
 		return null;
 	}
